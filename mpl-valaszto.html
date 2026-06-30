@@ -87,37 +87,49 @@ async function loadMPLXML() {
         const xml = parser.parseFromString(xmlText, "text/xml");
 
         const locations = xml.getElementsByTagName("post");
-        mplData = [];
+mplData = [];
 
-        for (let loc of locations) {
+for (let loc of locations) {
 
-            // GPS koordináták (vessző → pont)
-            const gps = loc.getElementsByTagName("gpsData")[0];
-            let lat = getXML(gps, "WGSLat").replace(",", ".");
-            let lon = getXML(gps, "WGSLon").replace(",", ".");
+    // GPS koordináták (vessző → pont)
+    const gps = loc.getElementsByTagName("gpsData")[0];
+    let lat = getXML(gps, "WGSLat").replace(",", ".");
+    let lon = getXML(gps, "WGSLon").replace(",", ".");
 
-            // Típus meghatározása
-            let type = getXML(loc, "ServicePointType");
+    // Eredeti ServicePointType
+    const spType = getXML(loc, "ServicePointType");
 
-            // Postahivatal felismerése
-            if (!type || type === "" || loc.getAttribute("isPostPoint") === "0") {
-                type = "POSTA";
-            }
+    // Egyszerű, egyértelmű mapping:
+    // CS  -> Csomagautomata
+    // PM  -> PostaPont / postapartner
+    // PO  -> Postahivatal
+    let type = "";
+    if (spType === "CS") {
+        type = "CS";
+    } else if (spType === "PM") {
+        type = "PM";
+    } else if (spType === "PO") {
+        type = "POSTA";
+    } else {
+        // ha valami más jön, tedd PostaPontba vagy hagyd ki
+        type = "PM";
+    }
 
-            const point = {
-                name: getXML(loc, "name"),
-                zip: loc.getAttribute("zipCode") || "",
-                city: getXML(loc, "city"),
-                address: buildAddress(loc),
-                lat: parseFloat(lat),
-                lng: parseFloat(lon),
-                type: type   // CS, PM, POSTA
-            };
+    const point = {
+        name: getXML(loc, "name"),
+        zip: loc.getAttribute("zipCode") || "",
+        city: getXML(loc, "city"),
+        address: buildAddress(loc),
+        lat: parseFloat(lat),
+        lng: parseFloat(lon),
+        type: type   // CS, PM, POSTA
+    };
 
-            if (!isNaN(point.lat) && !isNaN(point.lng)) {
-                mplData.push(point);
-            }
-        }
+    if (!isNaN(point.lat) && !isNaN(point.lng)) {
+        mplData.push(point);
+    }
+}
+
 
         initMPLMap();
     } catch (e) {
