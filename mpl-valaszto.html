@@ -96,23 +96,29 @@ for (let loc of locations) {
     let lat = getXML(gps, "WGSLat").replace(",", ".");
     let lon = getXML(gps, "WGSLon").replace(",", ".");
 
-    // Eredeti ServicePointType
     const spType = getXML(loc, "ServicePointType");
+    const isPoint = loc.getAttribute("isPostPoint");
+    const desc = getXML(loc, "description").toLowerCase();
 
-    // Egyszerű, egyértelmű mapping:
-    // CS  -> Csomagautomata
-    // PM  -> PostaPont / postapartner
-    // PO  -> Postahivatal
     let type = "";
+
+    // 1) Csomagautomata
     if (spType === "CS") {
         type = "CS";
-    } else if (spType === "PM") {
-        type = "PM";
-    } else if (spType === "PO") {
+    }
+
+    // 2) Valódi MPL PostaPont
+    else if (spType === "PM" && desc.includes("postapont")) {
+        type = "PM"; // csak ezek mennek a PostaPont gombra
+    }
+
+    // 3) Postapartnerek + postahivatalok egy csoportban
+    else {
+        // minden „posta jellegű” ide kerül:
+        // - PM + "postapartner"
+        // - isPostPoint="0"
+        // - egyéb posta típusok
         type = "POSTA";
-    } else {
-        // ha valami más jön, tedd PostaPontba vagy hagyd ki
-        type = "PM";
     }
 
     const point = {
@@ -129,7 +135,6 @@ for (let loc of locations) {
         mplData.push(point);
     }
 }
-
 
         initMPLMap();
     } catch (e) {
