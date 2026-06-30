@@ -5,7 +5,6 @@
 <title>MPL Átvevőhely választó</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Google Maps API -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA8iAzG4vyFffL1KV91jfLA75qHWWKqv44&language=hu&region=HU"></script>
 
 <style>
@@ -54,7 +53,6 @@ body {
         <p>Válassza ki az átvevőhely típusát, vagy keressen város, irányítószám vagy név alapján.</p>
     </div>
 
-    <!-- GOMBOK -->
     <div class="card">
         <div class="type-selector">
             <button class="type-btn" onclick="loadXML('CS')"><strong>MPL Csomagautomata</strong></button>
@@ -63,7 +61,6 @@ body {
         </div>
     </div>
 
-    <!-- KERESŐMEZŐ -->
     <div class="card">
         <input 
             type="text" 
@@ -87,14 +84,12 @@ let mplMap;
 let mplMarkers = [];
 let mplData = [];
 
-// XML URL-ek
 const XML_URLS = {
     "CS": "https://huntypeteam.github.io/mpl-valaszto/mpl_csomagautomata.xml",
     "PP": "https://huntypeteam.github.io/mpl-valaszto/mpl_postapont.xml",
     "POSTA": "https://huntypeteam.github.io/mpl-valaszto/mpl_postak.xml"
 };
 
-// XML betöltése
 async function loadXML(type) {
     try {
         const response = await fetch(XML_URLS[type]);
@@ -107,7 +102,6 @@ async function loadXML(type) {
         mplData = [];
 
         for (let loc of locations) {
-
             const gps = loc.getElementsByTagName("gpsData")[0];
             let lat = getXML(gps, "WGSLat").replace(",", ".");
             let lon = getXML(gps, "WGSLon").replace(",", ".");
@@ -150,18 +144,16 @@ function getXML(node, tag) {
 }
 
 function initMPLMap() {
-    // Budapest belváros alapértelmezett középpont
     const budapestCenter = { lat: 47.4979, lng: 19.0402 };
 
     mplMap = new google.maps.Map(document.getElementById("mpl-map"), {
         center: budapestCenter,
-        zoom: 13,            // belvárosi zoom
+        zoom: 13,
         mapTypeControl: false
     });
 
     renderMPLPoints();
 }
-
 
 function renderMPLPoints() {
     mplMarkers.forEach(m => m.setMap(null));
@@ -185,103 +177,3 @@ function renderMPLPoints() {
                 ${point.zip} ${point.city}, ${point.address}<br>
                 <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
                     Cím másolása
-                </button>
-            `
-        });
-
-        marker.addListener("click", () => {
-            info.open(mplMap, marker);
-        });
-
-        const item = document.createElement("div");
-        item.innerHTML = `
-            <strong>${point.name}</strong><br>
-            ${point.zip} ${point.city}, ${point.address}<br>
-            <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
-                Cím másolása
-            </button>
-        `;
-        listContainer.appendChild(item);
-    });
-
-    // FONTOS: NINCS fitBounds() → így marad Budapest belváros
-}
-
-
-    if (!bounds.isEmpty()) {
-        mplMap.fitBounds(bounds);
-    }
-}
-
-function copyAddress(text) {
-    navigator.clipboard.writeText(text);
-    alert("A cím kimásolásra került.");
-}
-
-function filterList() {
-    const q = document.getElementById("searchBox").value.toLowerCase();
-
-    const filtered = mplData.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.city.toLowerCase().includes(q) ||
-        p.zip.toLowerCase().includes(q)
-    );
-
-    renderFilteredPoints(filtered);
-}
-
-function renderFilteredPoints(points) {
-    mplMarkers.forEach(m => m.setMap(null));
-    mplMarkers = [];
-
-    const listContainer = document.getElementById("mpl-list");
-    listContainer.innerHTML = "<h2>Találatok</h2>";
-
-    const bounds = new google.maps.LatLngBounds();
-
-    points.forEach(point => {
-        const pos = { lat: point.lat, lng: point.lng };
-        const marker = new google.maps.Marker({
-            position: pos,
-            map: mplMap,
-            title: point.name
-        });
-        mplMarkers.push(marker);
-        bounds.extend(pos);
-
-        const info = new google.maps.InfoWindow({
-            content: `
-                <strong>${point.name}</strong><br>
-                ${point.zip} ${point.city}, ${point.address}<br>
-                <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
-                    Cím másolása
-                </button>
-            `
-        });
-
-        marker.addListener("click", () => {
-            info.open(mplMap, marker);
-        });
-
-        const item = document.createElement("div");
-        item.innerHTML = `
-            <strong>${point.name}</strong><br>
-            ${point.zip} ${point.city}, ${point.address}<br>
-            <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
-                Cím másolása
-            </button>
-        `;
-        listContainer.appendChild(item);
-    });
-
-    if (!bounds.isEmpty()) {
-        mplMap.fitBounds(bounds);
-    }
-}
-
-// Alapértelmezett: Csomagautomata
-window.addEventListener("load", () => loadXML("CS"));
-</script>
-
-</body>
-</html>
