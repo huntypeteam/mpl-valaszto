@@ -270,6 +270,17 @@ function renderFilteredPoints(points) {
 }
 
 window.addEventListener("load", () => loadXML("CS"));
+    <script>
+function sendHeight() {
+    const height = document.body.scrollHeight;
+    parent.postMessage({ type: "mplHeight", value: height }, "*");
+}
+
+window.addEventListener("load", sendHeight);
+window.addEventListener("resize", sendHeight);
+setInterval(sendHeight, 500);
+</script>
+
 </script>
 
 </body>
