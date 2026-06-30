@@ -5,7 +5,7 @@
 <title>MPL Átvevőhely választó</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Google Maps API – új kulccsal -->
+<!-- Google Maps API -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA8iAzG4vyFffL1KV91jfLA75qHWWKqv44&language=hu&region=HU"></script>
 
 <style>
@@ -56,10 +56,10 @@ body {
 
     <div class="card">
         <div class="type-selector">
-    <button class="type-btn" onclick="setMPLType('CS')"><strong>MPL Csomagautomata</strong></button>
-    <button class="type-btn" onclick="setMPLType('PM')"><strong>MPL PostaPont</strong></button>
-       </div>
-
+            <button class="type-btn" onclick="setMPLType('CS')"><strong>MPL Csomagautomata</strong></button>
+            <button class="type-btn" onclick="setMPLType('PM')"><strong>MPL PostaPont</strong></button>
+            <button class="type-btn" onclick="setMPLType('POSTA')"><strong>Postahivatalok</strong></button>
+        </div>
     </div>
 
     <div class="card">
@@ -75,7 +75,7 @@ body {
 let mplMap;
 let mplMarkers = [];
 let mplData = [];
-let currentType = 'PM'; // alapértelmezett: PostaPont
+let currentType = 'PM'; // alapértelmezett
 
 // XML betöltése GitHub-ról
 async function loadMPLXML() {
@@ -96,6 +96,14 @@ async function loadMPLXML() {
             let lat = getXML(gps, "WGSLat").replace(",", ".");
             let lon = getXML(gps, "WGSLon").replace(",", ".");
 
+            // Típus meghatározása
+            let type = getXML(loc, "ServicePointType");
+
+            // Postahivatal felismerése
+            if (!type || type === "" || loc.getAttribute("isPostPoint") === "0") {
+                type = "POSTA";
+            }
+
             const point = {
                 name: getXML(loc, "name"),
                 zip: loc.getAttribute("zipCode") || "",
@@ -103,7 +111,7 @@ async function loadMPLXML() {
                 address: buildAddress(loc),
                 lat: parseFloat(lat),
                 lng: parseFloat(lon),
-                type: getXML(loc, "ServicePointType") // PM, CS, stb.
+                type: type   // CS, PM, POSTA
             };
 
             if (!isNaN(point.lat) && !isNaN(point.lng)) {
