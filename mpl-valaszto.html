@@ -56,8 +56,8 @@ body {
 
     <div class="card">
         <div class="type-selector">
-            <button class="type-btn" onclick="setMPLType('AUTOMATA')"><strong>MPL Csomagautomata</strong></button>
-            <button class="type-btn" onclick="setMPLType('POSTAPONT')"><strong>MPL PostaPont</strong></button>
+            <button class="type-btn" onclick="setMPLType('PM')"><strong>MPL PostaPont</strong></button>
+            <button class="type-btn" onclick="setMPLType('CS')"><strong>MPL Csomagautomata</strong></button>
             <button class="type-btn" onclick="setMPLType('POSTA')"><strong>MPL Posta</strong></button>
         </div>
     </div>
@@ -75,7 +75,7 @@ body {
 let mplMap;
 let mplMarkers = [];
 let mplData = [];
-let currentType = 'AUTOMATA';
+let currentType = 'PM'; // alapértelmezett: PostaPont
 
 // XML betöltése GitHub-ról
 async function loadMPLXML() {
@@ -86,18 +86,24 @@ async function loadMPLXML() {
         const parser = new DOMParser();
         const xml = parser.parseFromString(xmlText, "text/xml");
 
-        const locations = xml.getElementsByTagName("PostInfo");
+        const locations = xml.getElementsByTagName("post");
         mplData = [];
 
         for (let loc of locations) {
+
+            // GPS koordináták (vessző → pont)
+            const gps = loc.getElementsByTagName("gpsData")[0];
+            let lat = getXML(gps, "WGSLat").replace(",", ".");
+            let lon = getXML(gps, "WGSLon").replace(",", ".");
+
             const point = {
-                name: getXML(loc, "PostName"),
-                zip: getXML(loc, "ZipCode"),
-                city: getXML(loc, "City"),
-                address: getXML(loc, "Address"),
-                lat: parseFloat(getXML(loc, "Latitude")),
-                lng: parseFloat(getXML(loc, "Longitude")),
-                type: getXML(loc, "PostType")
+                name: getXML(loc, "name"),
+                zip: loc.getAttribute("zipCode") || "",
+                city: getXML(loc, "city"),
+                address: buildAddress(loc),
+                lat: parseFloat(lat),
+                lng: parseFloat(lon),
+                type: getXML(loc, "ServicePointType") // PM, CS, stb.
             };
 
             if (!isNaN(point.lat) && !isNaN(point.lng)) {
@@ -110,6 +116,17 @@ async function loadMPLXML() {
         console.error("XML betöltési hiba:", e);
         alert("Nem sikerült betölteni az MPL átvevőhelyek listáját.");
     }
+}
+
+function buildAddress(loc) {
+    const street = loc.getElementsByTagName("street")[0];
+    if (!street) return "";
+
+    const name = getXML(street, "name");
+    const type = getXML(street, "type");
+    const house = getXML(street, "houseNumber");
+
+    return `${name} ${type} ${house}`;
 }
 
 function getXML(node, tag) {
