@@ -77,12 +77,10 @@ let mplMarkers = [];
 let mplData = [];
 let currentType = 'AUTOMATA';
 
-// XML betöltése Google Drive-ról
+// XML betöltése GitHub-ról
 async function loadMPLXML() {
     try {
-        const response = await fetch(
-            "https://drive.google.com/uc?export=download&id=1FB16xhG9k6exKvR6gUM9rPx36dI7jHh_"
-        );
+        const response = await fetch("https://huntypeteam.github.io/mpl-valaszto/mpl-valaszto.xml");
         const xmlText = await response.text();
 
         const parser = new DOMParser();
