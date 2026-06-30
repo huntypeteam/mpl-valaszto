@@ -170,8 +170,6 @@ function renderMPLPoints() {
     const listContainer = document.getElementById("mpl-list");
     listContainer.innerHTML = "<h2>Átvevőhelyek listája</h2>";
 
-    const bounds = new google.maps.LatLngBounds();
-
     mplData.forEach(point => {
         const pos = { lat: point.lat, lng: point.lng };
         const marker = new google.maps.Marker({
@@ -180,7 +178,6 @@ function renderMPLPoints() {
             title: point.name
         });
         mplMarkers.push(marker);
-        bounds.extend(pos);
 
         const info = new google.maps.InfoWindow({
             content: `
@@ -206,6 +203,10 @@ function renderMPLPoints() {
         `;
         listContainer.appendChild(item);
     });
+
+    // FONTOS: NINCS fitBounds() → így marad Budapest belváros
+}
+
 
     if (!bounds.isEmpty()) {
         mplMap.fitBounds(bounds);
