@@ -176,3 +176,23 @@ function renderMPLPoints() {
                 <strong>${point.name}</strong><br>
                 ${point.zip} ${point.city}, ${point.address}<br>
                 <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
+                    Cím másolása
+                </button>
+            `
+        });
+
+        marker.addListener("click", () => {
+            info.open(mplMap, marker);
+        });
+
+        const item = document.createElement("div");
+        item.innerHTML = `
+            <strong>${point.name}</strong><br>
+            ${point.zip} ${point.city}, ${point.address}<br>
+            <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
+                Cím másolása
+            </button>
+        `;
+        listContainer.appendChild(item);
+    });
+}
