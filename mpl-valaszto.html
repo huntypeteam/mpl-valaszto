@@ -150,14 +150,18 @@ function getXML(node, tag) {
 }
 
 function initMPLMap() {
+    // Budapest belváros alapértelmezett középpont
+    const budapestCenter = { lat: 47.4979, lng: 19.0402 };
+
     mplMap = new google.maps.Map(document.getElementById("mpl-map"), {
-        center: { lat: 47.4979, lng: 19.0402 },
-        zoom: 8,
+        center: budapestCenter,
+        zoom: 13,            // belvárosi zoom
         mapTypeControl: false
     });
 
     renderMPLPoints();
 }
+
 
 function renderMPLPoints() {
     mplMarkers.forEach(m => m.setMap(null));
