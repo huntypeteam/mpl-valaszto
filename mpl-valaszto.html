@@ -56,15 +56,25 @@ A találatokat szűkítse irányítószám, város vagy név beírásával.<br>
 A találatokat a térkép alatt láthatja.<br>
 A „Cím másolása” gombbal a kiválasztott címet átmásolhatja, majd a rendelés megjegyzésébe vagy a szállítási címhez beillesztheti (Ctrl+V).
 </p>
-
-
     </div>
 
     <div class="card">
         <div class="type-selector">
-            <button class="type-btn" onclick="loadXML('CS')"><strong>MPL Csomagautomata</strong></button>
-            <button class="type-btn" onclick="loadXML('PP')"><strong>MPL PostaPont</strong></button>
-            <button class="type-btn" onclick="loadXML('POSTA')"><strong>Postahivatalok és Postapartnerek</strong></button>
+            <button class="type-btn" onclick="loadXML('CS')">
+    <img src="https://www.belyegzotervezo.hu/media/wysiwyg/logo/csomagautomata-logo-57x40px.png" alt="Csomagautomata">
+    <strong>MPL Csomagautomata</strong>
+</button>
+
+<button class="type-btn" onclick="loadXML('PP')">
+    <img src="https://www.belyegzotervezo.hu/media/wysiwyg/logo/postapont-logo-60x40px.png" alt="PostaPont">
+    <strong>MPL PostaPont</strong>
+</button>
+
+<button class="type-btn" onclick="loadXML('POSTA')">
+    <img src="https://www.belyegzotervezo.hu/media/wysiwyg/logo/posta_80x40px_tps.png" alt="Posta">
+    <strong>Postahivatalok és Postapartnerek</strong>
+</button>
+
         </div>
     </div>
 
@@ -150,7 +160,7 @@ function getXML(node, tag) {
     return el ? el.textContent.trim() : "";
 }
 
-    function initMPLMap() {
+function initMPLMap() {
     const budapestCenter = { lat: 47.4979, lng: 19.0402 };
 
     mplMap = new google.maps.Map(document.getElementById("mpl-map"), {
@@ -182,7 +192,7 @@ function renderMPLPoints() {
             content: `
                 <strong>${point.name}</strong><br>
                 ${point.zip} ${point.city}, ${point.address}<br>
-                <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
+                <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}', this)">
                     Cím másolása
                 </button>
             `
@@ -196,7 +206,7 @@ function renderMPLPoints() {
         item.innerHTML = `
             <strong>${point.name}</strong><br>
             ${point.zip} ${point.city}, ${point.address}<br>
-            <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
+            <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}', this)">
                 Cím másolása
             </button>
         `;
@@ -204,9 +214,26 @@ function renderMPLPoints() {
     });
 }
 
-    function copyAddress(text) {
-    navigator.clipboard.writeText(text);
-    alert("A cím kimásolásra került.");
+function copyAddress(text, button) {
+    navigator.clipboard.writeText(text).catch(() => {
+        const temp = document.createElement("textarea");
+        temp.value = text;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+    });
+
+    if (button) {
+        button.style.backgroundColor = "#4CAF50";
+        button.style.color = "#fff";
+        button.innerText = "Másolva!";
+        setTimeout(() => {
+            button.style.backgroundColor = "";
+            button.style.color = "";
+            button.innerText = "Cím másolása";
+        }, 1000);
+    }
 }
 
 function filterList() {
@@ -244,7 +271,7 @@ function renderFilteredPoints(points) {
             content: `
                 <strong>${point.name}</strong><br>
                 ${point.zip} ${point.city}, ${point.address}<br>
-                <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
+                <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}', this)">
                     Cím másolása
                 </button>
             `
@@ -258,7 +285,7 @@ function renderFilteredPoints(points) {
         item.innerHTML = `
             <strong>${point.name}</strong><br>
             ${point.zip} ${point.city}, ${point.address}<br>
-            <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}')">
+            <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}', this)">
                 Cím másolása
             </button>
         `;
@@ -271,12 +298,9 @@ function renderFilteredPoints(points) {
 }
 
 window.addEventListener("load", () => loadXML("CS"));
-
 </script>
-    </script>
 
-<!-- IDE JÖN AZ AUTOMATIKUS MAGASSÁG SCRIPT -->
-
+<!-- Automatikus magasság script -->
 <script>
 function sendHeight() {
     const height = document.body.scrollHeight;
