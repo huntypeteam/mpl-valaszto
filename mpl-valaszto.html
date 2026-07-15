@@ -31,13 +31,38 @@ body {
     gap:12px;
 }
 .type-btn {
-    border:2px solid #ddd;
+    border:3px solid #ddd;
     border-radius:10px;
     padding:12px;
     background:#fff;
     cursor:pointer;
     text-align:center;
+    transition:0.2s;
 }
+.type-btn.active-CS { border-color:#f1c40f; }
+.type-btn.active-PP { border-color:#2ecc71; }
+.type-btn.active-POSTA { border-color:#e74c3c; }
+
+.type-btn img {
+    max-width: 60px;
+    height: auto;
+    display: block;
+    margin: 0 auto 8px auto;
+}
+
+/* SZÍNES PONTOK – Unicode helyett CSS */
+.dot {
+    display:inline-block;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    margin-right:6px;
+    vertical-align:middle;
+}
+.dot-cs { background:#f1c40f; }     /* sárga */
+.dot-pp { background:#2ecc71; }     /* zöld */
+.dot-posta { background:#e74c3c; }  /* piros */
+
 #mpl-list div {
     padding:10px 0;
     border-bottom:1px solid #ddd;
@@ -60,19 +85,20 @@ A „Cím másolása” gombbal a kiválasztott címet átmásolhatja, majd a re
 
     <div class="card">
         <div class="type-selector">
-            <button class="type-btn" onclick="loadXML('CS')">
+
+<button class="type-btn" onclick="toggleType('CS', this)">
     <img src="https://www.belyegzotervezo.hu/media/wysiwyg/logo/csomagautomata-logo-57x40px.png" alt="Csomagautomata">
-    <strong>MPL Csomagautomata</strong>
+    <strong><span class="dot dot-cs"></span>MPL Csomagautomata</strong>
 </button>
 
-<button class="type-btn" onclick="loadXML('PP')">
+<button class="type-btn" onclick="toggleType('PP', this)">
     <img src="https://www.belyegzotervezo.hu/media/wysiwyg/logo/postapont-logo-60x40px.png" alt="PostaPont">
-    <strong>MPL PostaPont</strong>
+    <strong><span class="dot dot-pp"></span>MPL PostaPont</strong>
 </button>
 
-<button class="type-btn" onclick="loadXML('POSTA')">
+<button class="type-btn" onclick="toggleType('POSTA', this)">
     <img src="https://www.belyegzotervezo.hu/media/wysiwyg/logo/posta_80x40px_tps.png" alt="Posta">
-    <strong>Postahivatalok és Postapartnerek</strong>
+    <strong><span class="dot dot-posta"></span>Postahivatalok és Postapartnerek</strong>
 </button>
 
         </div>
@@ -83,7 +109,7 @@ A „Cím másolása” gombbal a kiválasztott címet átmásolhatja, majd a re
             type="text" 
             id="searchBox" 
             placeholder="Keresés város, irányítószám vagy név alapján..." 
-            oninput="filterList()" 
+            oninput="applyFilters()" 
             style="width:100%; padding:12px; font-size:16px; border:2px solid #ddd; border-radius:10px;">
     </div>
 
@@ -100,6 +126,7 @@ A „Cím másolása” gombbal a kiválasztott címet átmásolhatja, majd a re
 let mplMap;
 let mplMarkers = [];
 let mplData = [];
+let activeTypes = [];
 
 const XML_URLS = {
     "CS": "https://huntypeteam.github.io/mpl-valaszto/mpl_csomagautomata.xml",
@@ -107,41 +134,56 @@ const XML_URLS = {
     "POSTA": "https://huntypeteam.github.io/mpl-valaszto/mpl_postak.xml"
 };
 
-async function loadXML(type) {
-    try {
-        const response = await fetch(XML_URLS[type]);
-        const xmlText = await response.text();
+const MARKER_ICONS = {
+    "CS": "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
+    "PP": "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+    "POSTA": "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+};
 
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(xmlText, "text/xml");
+async function loadAllXML() {
+    const [csRes, ppRes, postaRes] = await Promise.all([
+        fetch(XML_URLS.CS),
+        fetch(XML_URLS.PP),
+        fetch(XML_URLS.POSTA)
+    ]);
 
-        const locations = xml.getElementsByTagName("post");
-        mplData = [];
+    const csXML = new DOMParser().parseFromString(await csRes.text(), "text/xml");
+    const ppXML = new DOMParser().parseFromString(await ppRes.text(), "text/xml");
+    const postaXML = new DOMParser().parseFromString(await postaRes.text(), "text/xml");
 
-        for (let loc of locations) {
-            const gps = loc.getElementsByTagName("gpsData")[0];
-            let lat = getXML(gps, "WGSLat").replace(",", ".");
-            let lon = getXML(gps, "WGSLon").replace(",", ".");
+    mplData = [
+        ...parseXML(csXML, "CS"),
+        ...parseXML(ppXML, "PP"),
+        ...parseXML(postaXML, "POSTA")
+    ];
 
-            const point = {
-                name: getXML(loc, "name"),
-                zip: loc.getAttribute("zipCode") || "",
-                city: getXML(loc, "city"),
-                address: buildAddress(loc),
-                lat: parseFloat(lat),
-                lng: parseFloat(lon)
-            };
+    initMPLMap();
+}
 
-            if (!isNaN(point.lat) && !isNaN(point.lng)) {
-                mplData.push(point);
-            }
+function parseXML(xml, type) {
+    const locations = xml.getElementsByTagName("post");
+    const list = [];
+
+    for (let loc of locations) {
+        const gps = loc.getElementsByTagName("gpsData")[0];
+        let lat = getXML(gps, "WGSLat").replace(",", ".");
+        let lon = getXML(gps, "WGSLon").replace(",", ".");
+
+        const point = {
+            name: getXML(loc, "name"),
+            zip: loc.getAttribute("zipCode") || "",
+            city: getXML(loc, "city"),
+            address: buildAddress(loc),
+            lat: parseFloat(lat),
+            lng: parseFloat(lon),
+            type: type
+        };
+
+        if (!isNaN(point.lat) && !isNaN(point.lng)) {
+            list.push(point);
         }
-
-        initMPLMap();
-    } catch (e) {
-        console.error("XML betöltési hiba:", e);
-        alert("Nem sikerült betölteni az MPL átvevőhelyek listáját.");
     }
+    return list;
 }
 
 function buildAddress(loc) {
@@ -160,95 +202,54 @@ function getXML(node, tag) {
     return el ? el.textContent.trim() : "";
 }
 
+function toggleType(type, btn) {
+    if (activeTypes.includes(type)) {
+        activeTypes = activeTypes.filter(t => t !== type);
+        btn.classList.remove("active-" + type);
+    } else {
+        activeTypes.push(type);
+        btn.classList.add("active-" + type);
+    }
+    applyFilters();
+}
+
+function applyFilters() {
+    const q = document.getElementById("searchBox").value.toLowerCase();
+
+    let points = mplData;
+
+    if (activeTypes.length > 0) {
+        points = points.filter(p => activeTypes.includes(p.type));
+    }
+
+    if (q.length > 0) {
+        if (/^\d+$/.test(q)) {
+            points = points.filter(p => p.zip.startsWith(q));
+        } else {
+            points = points.filter(p =>
+                p.name.toLowerCase().includes(q) ||
+                p.city.toLowerCase().includes(q) ||
+                p.zip.toLowerCase().includes(q)
+            );
+        }
+    }
+
+    renderFilteredPoints(points, q.length > 0);
+}
+
 function initMPLMap() {
     const budapestCenter = { lat: 47.4979, lng: 19.0402 };
 
     mplMap = new google.maps.Map(document.getElementById("mpl-map"), {
         center: budapestCenter,
-        zoom: 13,
+        zoom: 12,
         mapTypeControl: false
     });
 
-    renderMPLPoints();
+    renderFilteredPoints(mplData, false);
 }
 
-function renderMPLPoints() {
-    mplMarkers.forEach(m => m.setMap(null));
-    mplMarkers = [];
-
-    const listContainer = document.getElementById("mpl-list");
-    listContainer.innerHTML = "<h2>Átvevőhelyek listája</h2>";
-
-    mplData.forEach(point => {
-        const pos = { lat: point.lat, lng: point.lng };
-        const marker = new google.maps.Marker({
-            position: pos,
-            map: mplMap,
-            title: point.name
-        });
-        mplMarkers.push(marker);
-
-        const info = new google.maps.InfoWindow({
-            content: `
-                <strong>${point.name}</strong><br>
-                ${point.zip} ${point.city}, ${point.address}<br>
-                <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}', this)">
-                    Cím másolása
-                </button>
-            `
-        });
-
-        marker.addListener("click", () => {
-            info.open(mplMap, marker);
-        });
-
-        const item = document.createElement("div");
-        item.innerHTML = `
-            <strong>${point.name}</strong><br>
-            ${point.zip} ${point.city}, ${point.address}<br>
-            <button onclick="copyAddress('${point.name} – ${point.zip} ${point.city}, ${point.address}', this)">
-                Cím másolása
-            </button>
-        `;
-        listContainer.appendChild(item);
-    });
-}
-
-function copyAddress(text, button) {
-    navigator.clipboard.writeText(text).catch(() => {
-        const temp = document.createElement("textarea");
-        temp.value = text;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand("copy");
-        document.body.removeChild(temp);
-    });
-
-    if (button) {
-        button.style.backgroundColor = "#4CAF50";
-        button.style.color = "#fff";
-        button.innerText = "Másolva!";
-        setTimeout(() => {
-            button.style.backgroundColor = "";
-            button.style.color = "";
-            button.innerText = "Cím másolása";
-        }, 1000);
-    }
-}
-
-function filterList() {
-    const q = document.getElementById("searchBox").value.toLowerCase();
-
-    const filtered = mplData.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.city.toLowerCase().includes(q) ||
-        p.zip.toLowerCase().includes(q)
-    );
-
-    renderFilteredPoints(filtered);
-}
-
-function renderFilteredPoints(points) {
+function renderFilteredPoints(points, allowZoom) {
     mplMarkers.forEach(m => m.setMap(null));
     mplMarkers = [];
 
@@ -262,7 +263,8 @@ function renderFilteredPoints(points) {
         const marker = new google.maps.Marker({
             position: pos,
             map: mplMap,
-            title: point.name
+            title: point.name,
+            icon: MARKER_ICONS[point.type] || MARKER_ICONS["POSTA"]
         });
         mplMarkers.push(marker);
         bounds.extend(pos);
@@ -292,12 +294,34 @@ function renderFilteredPoints(points) {
         listContainer.appendChild(item);
     });
 
-    if (!bounds.isEmpty()) {
+    if (allowZoom && !bounds.isEmpty()) {
         mplMap.fitBounds(bounds);
     }
 }
 
-window.addEventListener("load", () => loadXML("CS"));
+function copyAddress(text, button) {
+    navigator.clipboard.writeText(text).catch(() => {
+        const temp = document.createElement("textarea");
+        temp.value = text;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+    });
+
+    if (button) {
+        button.style.backgroundColor = "#4CAF50";
+        button.style.color = "#fff";
+        button.innerText = "Másolva!";
+        setTimeout(() => {
+            button.style.backgroundColor = "";
+            button.style.color = "";
+            button.innerText = "Cím másolása";
+        }, 1000);
+    }
+}
+
+window.addEventListener("load", loadAllXML);
 </script>
 
 <!-- Automatikus magasság script -->
