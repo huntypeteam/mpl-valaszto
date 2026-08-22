@@ -1,11 +1,10 @@
 export async function onRequestPost(context) {
   const body = await context.request.json();
 
-  // A keresőszöveg: város vagy irányítószám
   const searchText = body.city || body.postCode || "";
 
   const response = await fetch(
-    "https://net.posta.hu/postoffice/public/postoffice-api/rest/postoffice/search",
+    "https://net.posta.hu/postoffice/public/postoffice-api/rest/postoffice-api/rest/postoffice/search",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
