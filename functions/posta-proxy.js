@@ -1,6 +1,7 @@
 export async function onRequestPost(context) {
   const body = await context.request.json();
 
+  // A keresőszöveg: város vagy irányítószám
   const searchText = body.city || body.postCode || "";
 
   const response = await fetch(
